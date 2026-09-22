@@ -1,5 +1,4 @@
 [README.md](https://github.com/user-attachments/files/32520674/README.md)
-# productivity
 # Odyssey Classroom Tools
 
 A couple of small browser tools that save time on two repetitive tasks: taking attendance from Zoom, and adding notes to student records in Grade Guardian. You don't need to know anything technical to use these — just follow the steps below once, and after that it's just clicking a button whenever you need it.
