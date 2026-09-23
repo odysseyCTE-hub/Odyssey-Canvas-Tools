@@ -29,32 +29,15 @@ That's it for setup. You only need to do this once.
 Click each link below, then click **Install** on the page that opens:
 
 - 📋 **[Zoom CSV to Roll Call](LINK_HERE)** — turn a Zoom attendance export into Roll Call attendance automatically
-- 🔗 **[Roll Call to Grade Guardian Bridge](LINK_HERE)** — send today's absent list from Roll Call straight into Grade Guardian, pre-selected
+- 🔗 **[Roll Call to Grade Guardian Bridge](https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/rollcall-to-grade-guardian-bridge.user.js)** — send today's absent list from Roll Call straight into Grade Guardian, pre-selected
 
 Once installed, you never have to think about them again — if either tool ever gets improved, your browser will quietly update it on its own.
 
 ---
 
-## Using the Roll Call to Grade Guardian Bridge
-
-This one works in two steps, one on each site — but you only click one button on each side.
-
-**Step 1 — on Roll Call:**
-1. Open Roll Call and make sure it's showing the date you want (today, by default).
-2. Click the purple **"Send Absent List → Grade Guardian"** button.
-3. It reads whoever's currently marked Absent for that date and opens Grade Guardian in a new tab.
-
-**Step 2 — on Grade Guardian:**
-1. A small banner will appear automatically, showing exactly which students are about to be selected.
-2. Click **"Start Selecting"** in that banner.
-3. It searches for each student one at a time and checks their box, showing a ✅, ⚠️, ❌, or ❓ next to each name as it goes.
-4. Once it's done, **you still click Send yourself** — this tool never sends anything on its own, it only gets the right students checked for you.
-
-If a name comes back with a ⚠️ (multiple matches) or ❓ (couldn't confirm), just find and check that one student manually — everyone else will already be done.
-
----
-
 ## Using Zoom CSV to Roll Call
+
+Do this one first — it's what marks your students Present/Late/Absent in Roll Call in the first place. The Grade Guardian bridge below reads that result, so it only makes sense to run after this step.
 
 1. Download your attendance CSV from Zoom (Reports → Meetings → find your class → Export).
 2. Open Roll Call for the section you want to update.
@@ -70,6 +53,27 @@ If a name comes back with a ⚠️ (multiple matches) or ❓ (couldn't confirm),
 - **Present** — attended at least 31 minutes, *and* joined within 15 minutes of when class started
 - **Late** — showed up, but either joined more than 15 minutes late, or didn't stay long enough for Present
 - **Absent** — never actually got into the meeting
+
+---
+
+## Using the Roll Call to Grade Guardian Bridge
+
+Run this one after Roll Call already has today's attendance in it (see above) — it reads whoever's currently marked Absent, so if you run it before importing attendance, there's nothing for it to send yet.
+
+This one works in two steps, one on each site — but you only click one button on each side.
+
+**Step 1 — on Roll Call:**
+1. Open Roll Call and make sure it's showing the date you want (today, by default).
+2. Click the purple **"Send Absent List → Grade Guardian"** button.
+3. It reads whoever's currently marked Absent for that date and opens Grade Guardian in a new tab.
+
+**Step 2 — on Grade Guardian:**
+1. A small banner will appear automatically, showing exactly which students are about to be selected.
+2. Click **"Start Selecting"** in that banner.
+3. It searches for each student one at a time and checks their box, showing a ✅, ⚠️, ❌, or ❓ next to each name as it goes.
+4. Once it's done, **you still click Send yourself** — this tool never sends anything on its own, it only gets the right students checked for you.
+
+If a name comes back with a ⚠️ (multiple matches) or ❓ (couldn't confirm), just find and check that one student manually — everyone else will already be done.
 
 ---
 
