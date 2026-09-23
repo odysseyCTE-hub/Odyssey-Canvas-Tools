@@ -1,7 +1,6 @@
-[README.md](https://github.com/user-attachments/files/32520674/README.md)
 # Odyssey Classroom Tools
 
-A couple of small browser tools that save time on two repetitive tasks: taking attendance from Zoom, and adding notes to student records in Grade Guardian. You don't need to know anything technical to use these — just follow the steps below once, and after that it's just clicking a button whenever you need it.
+A couple of small browser tools that save time on two repetitive tasks: turning a Zoom attendance export into Roll Call attendance, and sending your absent list straight into Grade Guardian so you don't have to search for each student by hand. You don't need to know anything technical to use these — just follow the steps below once, and after that it's just clicking a button whenever you need it.
 
 ---
 
@@ -29,23 +28,29 @@ That's it for setup. You only need to do this once.
 
 Click each link below, then click **Install** on the page that opens:
 
-- 📝 **[Grade Guardian Bulk Notes](LINK_HERE)** — add the same note to multiple students at once
 - 📋 **[Zoom CSV to Roll Call](LINK_HERE)** — turn a Zoom attendance export into Roll Call attendance automatically
+- 🔗 **[Roll Call to Grade Guardian Bridge](LINK_HERE)** — send today's absent list from Roll Call straight into Grade Guardian, pre-selected
 
 Once installed, you never have to think about them again — if either tool ever gets improved, your browser will quietly update it on its own.
 
 ---
 
-## Using Grade Guardian Bulk Notes
+## Using the Roll Call to Grade Guardian Bridge
 
-1. Go to the student roster page in Grade Guardian, like you normally would.
-2. Click the orange **"Bulk Add Note"** button in the top-right corner of the page.
-3. A panel opens showing your students. Check the box next to everyone you want to add a note to.
-   - You can page through the roster normally — new students you see get added to the list automatically, so you don't lose your place.
-4. Type your note, and pick a tag from the dropdown (start typing to search, e.g. "SGP" or "Email").
-5. Click **Submit All**. You'll see a ✅ or ❌ next to each student as it goes through.
+This one works in two steps, one on each site — but you only click one button on each side.
 
-Nothing is sent until you click that final button — so it's safe to open the panel, look around, and close it if you change your mind.
+**Step 1 — on Roll Call:**
+1. Open Roll Call and make sure it's showing the date you want (today, by default).
+2. Click the purple **"Send Absent List → Grade Guardian"** button.
+3. It reads whoever's currently marked Absent for that date and opens Grade Guardian in a new tab.
+
+**Step 2 — on Grade Guardian:**
+1. A small banner will appear automatically, showing exactly which students are about to be selected.
+2. Click **"Start Selecting"** in that banner.
+3. It searches for each student one at a time and checks their box, showing a ✅, ⚠️, ❌, or ❓ next to each name as it goes.
+4. Once it's done, **you still click Send yourself** — this tool never sends anything on its own, it only gets the right students checked for you.
+
+If a name comes back with a ⚠️ (multiple matches) or ❓ (couldn't confirm), just find and check that one student manually — everyone else will already be done.
 
 ---
 
@@ -70,9 +75,9 @@ Nothing is sent until you click that final button — so it's safe to open the p
 
 ## What these tools do NOT do
 
-- **They don't email or message students.** Bulk Notes only writes into Grade Guardian's internal note log — nothing goes out to a student or guardian.
+- **They don't email or message students.** Neither tool sends anything to a student or guardian.
 - **They don't touch grades.** Neither tool can see or change anything in the Canvas gradebook.
-- **They don't submit anything automatically.** Every action — the note, the attendance — only goes through when you click the final "Submit" or "Apply" button. You can always close the panel first with no changes made.
+- **They don't submit anything automatically.** The Zoom importer only applies attendance when you click "Apply." The Grade Guardian bridge only checks the right boxes for you — it never clicks Send. That's always your final click.
 - **They don't share your data with anyone else.** Everything runs locally in your own browser, talking directly to Grade Guardian, Roll Call, and Canvas the same way you would by clicking through the site yourself — nothing passes through us or any outside server.
 - **They don't work on other schools' Grade Guardian or Roll Call setups.** These are built specifically for Odyssey's version of these tools.
 
