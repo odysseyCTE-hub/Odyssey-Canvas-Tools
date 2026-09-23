@@ -8,6 +8,8 @@
 // @run-at       document-idle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @updateURL    https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/rollcall-to-grade-guardian-bridge.user.js
+// @downloadURL  https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/rollcall-to-grade-guardian-bridge.user.js
 // ==/UserScript==
 
 (function () {
