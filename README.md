@@ -30,6 +30,9 @@ Click each link below, then click **Install** on the page that opens:
 
 - 📋 **[Zoom CSV to Roll Call](LINK_HERE)** — turn a Zoom attendance export into Roll Call attendance automatically
 - 🔗 **[Roll Call to Grade Guardian Bridge](https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/rollcall-to-grade-guardian-bridge.user.js)** — send today's absent list from Roll Call straight into Grade Guardian, pre-selected
+- 📝 **[Grade Guardian Bulk Note](https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/Grade%20Guardian%20Bulk%20Notes-Green.user.js) - Allow user to choose multiple students to submit mass note
+- 📚 **[View All Grades Sidebar](https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/Grade%20Guardian%20Bulk%20Notes-Green.user.js) -  tab to view most current grades for student
+- 🪛 **[View All Grades Scraper - Needed for Sidebar](https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/Grade%20Guardian%20-%20Canvas%20Grade%20Scraper%20Helper-1.1.user.js) - needed to support View All Grades Sidebar 
 
 Once installed, you never have to think about them again — if either tool ever gets improved, your browser will quietly update it on its own.
 
