@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Grade Guardian - Canvas API Sidebar Grades (Popup-Verified Total, Progressive Loading)
 // @namespace    lisa-attendance-tool-gg-notes
-// @version      10.11
-// @description  Sidebar shows the EXACT Canvas "Total" for the current grading period by briefly opening each course's real Grades page (via the companion helper script) and reading the true rendered number. Table appears immediately with each row filling in live as its score arrives. Includes a "Retrieved from Canvas at..." timestamp and a manual refresh button. Requests enrollments with per_page=100 to avoid Canvas's default pagination hiding current courses behind older enrollment history. No longer pre-filters by Canvas enrollment state before matching. Fetches course names only for the small set of matched/final courses. Shows a brief on-screen "loaded" badge (bottom-left) and always logs real errors to console, so setup problems are diagnosable without needing DevTools for basic confirmation. Popup-opening code de-duplicated. Scoped to only the courses shown in Grade Guardian, in GG's order. Requires the companion "Grade Guardian - Canvas Grade Scraper Helper" script to also be installed/enabled.
+// @version      10.16
+// @description  Sidebar shows the EXACT Canvas "Total" for the current grading period by briefly opening each course's real Grades page (via the companion helper script) and reading the true rendered number. Table appears immediately with each row filling in live as its score arrives. Includes a slim "Missing" column showing the count of missing assignments per course, read from the same already-loaded real grades page as the grade itself (Canvas's missing_submissions API returns 403 for a teacher looking up students outside her own courses, so this reads it directly off the page instead). Includes a "Retrieved from Canvas at..." timestamp and a manual refresh button. Requests enrollments with per_page=100 to avoid Canvas's default pagination hiding current courses behind older enrollment history. Always logs real errors to console. Scoped to only the courses shown in Grade Guardian, in GG's order. Teal theme. Requires the companion "Grade Guardian - Canvas Grade Scraper Helper" script (v1.2+) to also be installed/enabled.
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
 // @allFrames    true
@@ -13,41 +13,12 @@
 (function () {
   'use strict';
 
-  // Always logs, regardless of DEBUG — a quick way to confirm the script
+  // Always logs, regardless of DEBUG — a quiet way to confirm the script
   // actually loaded and is running, without needing to click anything first.
-  console.log('GG Sidebar script v10.11 loaded and running.');
-
-  // Visible on-screen confirmation, for anyone who'd rather glance at the
-  // page than open DevTools. Small badge, bottom-left, fades away on its own.
-  function showLoadedBadge() {
-    const badge = document.createElement('div');
-    badge.textContent = '✅ GG Sidebar script v10.11 loaded';
-    Object.assign(badge.style, {
-      position: 'fixed',
-      bottom: '12px',
-      left: '12px',
-      backgroundColor: '#2e7d32',
-      color: '#fff',
-      padding: '6px 12px',
-      borderRadius: '6px',
-      fontSize: '12px',
-      fontFamily: 'sans-serif',
-      zIndex: '2147483647',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-      transition: 'opacity 0.5s ease'
-    });
-    document.body.appendChild(badge);
-    setTimeout(() => {
-      badge.style.opacity = '0';
-      setTimeout(() => badge.remove(), 600);
-    }, 4000);
-  }
-
-  if (document.body) {
-    showLoadedBadge();
-  } else {
-    document.addEventListener('DOMContentLoaded', showLoadedBadge);
-  }
+  // (A visible on-screen badge used to show here too, added for one specific
+  // troubleshooting session — removed now that it's no longer needed day to
+  // day; this console line is enough of a safety net if it's ever needed again.)
+  console.log('GG Sidebar script v10.16 loaded and running.');
 
   const CANVAS_BASE = 'https://odysseyonlinelearning.instructure.com';
   const DEBUG = false; // flip back to true if something needs troubleshooting
@@ -244,7 +215,7 @@
         settled = true;
         window.removeEventListener('message', handleMessage);
         clearTimeout(timeoutId);
-        resolve(data.score !== null ? { score: data.score, letter: data.letter, raw: data.raw } : null);
+        resolve(data.score !== null ? { score: data.score, letter: data.letter, raw: data.raw, missingCount: data.missingCount } : null);
       }
 
       window.addEventListener('message', handleMessage);
@@ -380,13 +351,18 @@
       // the sidebar doesn't sit blank while we work through each course.
       renderSkeletonTable(finalCourseList, studentId, contentContainer);
 
-      // Now fill in each row's REAL total as soon as it comes back — one
-      // course at a time (reusing the same popup window), updating that
-      // row live rather than waiting for everything to finish.
+      // Now fill in each row's REAL total AND missing-assignment count as
+      // soon as they come back together — one course at a time (reusing the
+      // same popup window), updating both cells live rather than waiting for
+      // everything to finish. (Missing counts come from the same already-
+      // loaded real grades page, not a separate API call — Canvas's
+      // missing_submissions endpoint returns 403 for a teacher looking up a
+      // student outside her own courses, same permission wall as before.)
       for (const e of finalCourseList) {
         const periodId = await getCurrentGradingPeriodId(e.course_id);
         const result = await fetchTotalViaPopup(e.course_id, studentId, periodId, helperWindow);
         updateRowScore(e.course_id, result);
+        updateMissingCount(e.course_id, result ? result.missingCount : null);
       }
 
       if (helperWindow && !helperWindow.closed) {
@@ -410,6 +386,10 @@
     return `gg-score-cell-${courseId}`;
   }
 
+  function missingRowIdFor(courseId) {
+    return `gg-missing-cell-${courseId}`;
+  }
+
   function renderSkeletonTable(enrollments, studentId, container) {
     if (!enrollments || enrollments.length === 0) {
       container.innerHTML = `<div style="padding: 30px; text-align: center; color: #666;">No matching courses found on Grade Guardian page.</div>`;
@@ -423,6 +403,9 @@
           <td style="padding: 12px; font-weight: 500; color: #333; line-height: 1.3;">${courseName}</td>
           <td id="${rowIdFor(e.course_id)}" style="padding: 12px; text-align: right; font-weight: bold; color: #29847E; white-space: nowrap;">
             <span style="color:#bbb; font-size: 12px; font-weight: normal;">⏳ Loading…</span>
+          </td>
+          <td id="${missingRowIdFor(e.course_id)}" style="padding: 12px; text-align: center; white-space: nowrap; color: #333;">
+            <span style="color:#bbb; font-size: 12px;">…</span>
           </td>
           <td style="padding: 12px; text-align: center; white-space: nowrap;">
             <a href="${CANVAS_BASE}/courses/${e.course_id}/grades/${studentId}" target="_blank" style="color: #007bff; text-decoration: none;">View ↗</a>
@@ -438,6 +421,7 @@
             <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
               <th style="padding: 12px;">Course Name</th>
               <th style="padding: 12px; text-align: right;">Grade</th>
+              <th style="padding: 12px; text-align: center;" title="Missing assignments">Missing</th>
               <th style="padding: 12px; text-align: center;">Assignments</th>
             </tr>
           </thead>
@@ -448,6 +432,19 @@
         <div id="gg-retrieved-at" style="padding: 8px 12px; font-size: 11px; color: #999;">Retrieving from Canvas…</div>
       </div>
     `;
+  }
+
+  function updateMissingCount(courseId, count) {
+    const cell = document.getElementById(missingRowIdFor(courseId));
+    if (!cell) return; // sidebar may have been closed/switched mid-fetch
+
+    if (count === null) {
+      cell.innerHTML = `<span style="color:#999; font-size: 12px;">—</span>`;
+    } else if (count > 0) {
+      cell.innerHTML = `<span style="color:#d9534f; font-weight: bold;">${count}</span>`;
+    } else {
+      cell.innerHTML = `<span style="color:#5cb85c; font-weight: bold;">0</span>`;
+    }
   }
 
   function updateRowScore(courseId, result) {
@@ -474,7 +471,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // Sidebar UI plumbing (unchanged from v6.6)
+  // Sidebar UI plumbing
   // ---------------------------------------------------------------------
   function toggleCanvasSidebar(studentId, helperWindow) {
     let sidebar = document.getElementById('gg-canvas-sidebar');
