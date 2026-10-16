@@ -6,6 +6,8 @@
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
+// @updateURL    https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.2.js
+// @downloadURL  https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.2.js
 // ==/UserScript==
 
 (function () {
