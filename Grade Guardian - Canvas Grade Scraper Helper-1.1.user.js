@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         Grade Guardian - Canvas Grade Scraper Helper
 // @namespace    lisa-attendance-tool-gg-notes
-// @version      1.5
+// @version      1.6
 // @description  Runs on the real Canvas grades page when opened by the sidebar automation (as a popup OR inside a hidden iframe); waits for the real rendered "Total", then polls for status pills to actually finish populating (instead of a fixed wait) before counting missing assignments — finishes as soon as real pill content appears, capped at the same 900ms ceiling as before for slow/empty cases. Sends both back via postMessage.
+// @updateURL    https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade%20Guardian%20-%20Canvas%20Grade%20Scraper%20Helper-1.1.user.js
+// @downloadURL  https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade%20Guardian%20-%20Canvas%20Grade%20Scraper%20Helper-1.1.user.js
 // @match        https://odysseyonlinelearning.instructure.com/courses/*/grades/*
 // @run-at       document-idle
 // @grant        none
