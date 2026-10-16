@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name         Grade Guardian - Canvas API Sidebar Grades (Popup-Verified Total, Progressive Loading)
 // @namespace    lisa-attendance-tool-gg-notes
-// @version      10.16
+// @version      10.17
 // @description  Sidebar shows the EXACT Canvas "Total" for the current grading period by briefly opening each course's real Grades page (via the companion helper script) and reading the true rendered number. Table appears immediately with each row filling in live as its score arrives. Includes a slim "Missing" column showing the count of missing assignments per course, read from the same already-loaded real grades page as the grade itself (Canvas's missing_submissions API returns 403 for a teacher looking up students outside her own courses, so this reads it directly off the page instead). Includes a "Retrieved from Canvas at..." timestamp and a manual refresh button. Requests enrollments with per_page=100 to avoid Canvas's default pagination hiding current courses behind older enrollment history. Always logs real errors to console. Scoped to only the courses shown in Grade Guardian, in GG's order. Teal theme. Requires the companion "Grade Guardian - Canvas Grade Scraper Helper" script (v1.2+) to also be installed/enabled.
+// @updateURL    https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade%20Guardian%20-%20Canvas%20API%20Sidebar%20Grades.user.js
+// @downloadURL  https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade%20Guardian%20-%20Canvas%20API%20Sidebar%20Grades.user.js
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
 // @allFrames    true
@@ -18,7 +20,7 @@
   // (A visible on-screen badge used to show here too, added for one specific
   // troubleshooting session — removed now that it's no longer needed day to
   // day; this console line is enough of a safety net if it's ever needed again.)
-  console.log('GG Sidebar script v10.16 loaded and running.');
+  console.log('GG Sidebar script v10.17 loaded and running.');
 
   const CANVAS_BASE = 'https://odysseyonlinelearning.instructure.com';
   const DEBUG = false; // flip back to true if something needs troubleshooting
