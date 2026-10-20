@@ -1,13 +1,11 @@
 // ==UserScript==
 // @name         Grade Guardian Bulk Notes-HUB
 // @namespace    lisa-attendance-tool-gg-notes
-// @version      2.9.2
+// @version      2.9.3
 // @description  Bulk notes + pending-note bridge + direct Grade Guardian communication sync to Student Monitoring Hub.
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
-// @updateURL    https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.2.js
-// @downloadURL  https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.2.js
 // ==/UserScript==
 
 (function () {
@@ -497,8 +495,8 @@
   // BRIDGE SETUP — fill in these TWO values after deploying the Apps Script
   // web app. Do not include ?secret= in WEB_APP_URL.
   // ---------------------------------------------------------------------
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyhL6lIgXKXZQ5WMQRJG8p32nd0_MVrVUXCPeaa625mCh5BTEubwuNCIr7k6JfO44rK/exec';
-  const BRIDGE_SHARED_SECRET = 'Courtney-GG-Reports-2026-K8p4X2m9Q7';
+  const WEB_APP_URL = 'UPDATE';
+  const BRIDGE_SHARED_SECRET = 'UPDATE';
 
   // Bridge tags: choose by the note's communication method.
   // Keep existing email notes tagged Email; group texts use Text Message.
@@ -1056,7 +1054,7 @@
   // is unchanged. This is an additional read-only Grade Guardian sync.
   // =====================================================================
 
-  const GG_SYNC_AUTHOR_NAME = 'Courtney Fachko';
+  const GG_SYNC_AUTHOR_NAME = 'UPDATE';
   const GG_SYNC_BUTTON_ID = 'ggn-sync-communication-hub';
   let ggCommunicationSyncRunning = false;
 
@@ -1317,17 +1315,9 @@
         }
       }
 
-      if (button) {
-        button.textContent = 'Refreshing Hub views...';
-      }
-
-      const refreshResponse =
-        await postGgCommunicationChunkToHub_([], true);
-
-      const refreshErrors =
-        Array.isArray(refreshResponse.refreshErrors)
-          ? refreshResponse.refreshErrors
-          : [];
+      // Request a separate Hub refresh without blocking the completed data sync.
+      // The deployed Apps Script must support GET action=refreshGGViews.
+      refreshHubViewsAfterGgSync_();
 
       alert(
         `Grade Guardian communication sync complete.\n\n` +
@@ -1336,11 +1326,8 @@
         `${added} new record(s) added to the Hub\n` +
         `${skipped} already stored / skipped\n` +
         `${failed} student activity request(s) failed\n\n` +
-        (
-          refreshErrors.length
-            ? `Communication was saved, but a Hub view had a refresh problem:\n${refreshErrors.join('\n')}`
-            : `Weekly Contact Priority and Weekly Totals were refreshed.`
-        )
+        `Weekly Contact Priority and Weekly Totals refresh was requested. ` +
+        `Check those tabs shortly to confirm that it finished.`
       );
 
     } catch (error) {
