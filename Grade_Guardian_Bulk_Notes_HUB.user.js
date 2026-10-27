@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Grade Guardian Bulk Notes-HUB
 // @namespace    gg-notes-hub-tool
-// @version      2.9.6
+// @version      2.9.7
 // @description  Bulk notes + pending-note bridge + direct Grade Guardian communication sync to Student Monitoring Hub.
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
