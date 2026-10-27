@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Grade Guardian Bulk Notes-HUB
-// @namespace    lisa-attendance-tool-gg-notes
-// @version      2.9.5
+// @namespace    gg-notes-hub-tool
+// @version      2.9.6
 // @description  Bulk notes + pending-note bridge + direct Grade Guardian communication sync to Student Monitoring Hub.
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
@@ -10,6 +10,8 @@
 // @grant        GM_setValue
 // @connect      script.google.com
 // @connect      script.googleusercontent.com
+// @updateURL    https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.5.js
+// @downloadURL  https://github.com/odysseyCTE-hub/Odyssey-Canvas-Tools/raw/refs/heads/main/Grade_Guardian_Bulk_Notes_HUB_v2.9.5.js
 // ==/UserScript==
 
 (function () {
