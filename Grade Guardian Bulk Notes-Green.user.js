@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Grade Guardian Bulk Notes
 // @namespace    odyssey-gg-bulk-notes
-// @version      1.1
-// @description  Pick students from the full roster, write one note + tag, and submit it individually to each selected student — entirely via background requests, no clicking through the UI.
+// @version      1.2
+// @description  Pick students from the full roster, write one note + one or more tags, and submit it individually to each selected student — entirely via background requests, no clicking through the UI.
 // @match        https://prd-m.aspiredu.com/*
 // @run-at       document-idle
 // @grant        none
@@ -20,6 +20,17 @@
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // Makes text safe to drop into innerHTML (tag names like
+  // "Attendance Notes & Excuses", student names with apostrophes, etc.).
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // ---------------------------------------------------------------------
@@ -52,10 +63,6 @@
     return rows;
   }
 
-  // ---------------------------------------------------------------------
-  // Read the live tag list (name -> UUID) directly from the page, so it
-  // stays correct even if tags are added/renamed later.
-  // ---------------------------------------------------------------------
   // Treats the first word as a first name and everything after it as the
   // last name (handles compound surnames like "Reyes Castillo" as one unit),
   // so the roster list can be sorted by last name instead of first.
@@ -66,17 +73,23 @@
     return parts.slice(1).join(' ') + ', ' + parts[0];
   }
 
-  // Captured directly from the real tag dropdown earlier. This is the
-  // fallback used here, since the live <select id="id_tags"> element only
-  // exists on a student's individual Notes page — not on the roster page
-  // this panel actually runs on. If tags are ever added/renamed/removed on
-  // Grade Guardian's side, this list needs a manual update to match.
+  // ---------------------------------------------------------------------
+  // Tag list (name -> UUID). Three sources, best first:
+  //   1. The live <select id="id_tags"> — only exists on a student's Notes page.
+  //   2. A copy saved in this browser the last time a Notes page was opened.
+  //   3. FALLBACK_TAGS below — used until this browser has seen a Notes page.
+  // ---------------------------------------------------------------------
+
+  // Built-in list, captured from the real tag dropdown. If tags change in
+  // Grade Guardian, opening any student's Notes page updates the saved copy
+  // automatically; this list only matters before that happens.
 
   const FALLBACK_TAGS = [
     { uuid: 'ac6e7e12-ead3-4a97-a783-0fe1797ad734', label: 'Administrative Referral_HS' },
     { uuid: 'b547ef94-e222-44ae-a663-f1b924b9a70b', label: 'Administrative Referral_MS' },
     { uuid: 'ea29b464-a671-4e16-9503-c4c7b89af0df', label: 'Attendance Notes & Excuses' },
     { uuid: 'e8a24169-53d9-4d5d-a2a5-d618853fb785', label: 'Email' },
+    { uuid: '155c1609-fe24-4f82-ac1f-d27c9591f295', label: 'Intervention' },
     { uuid: '7f1c2ae6-d11d-4f2f-9bd1-dc924537676a', label: 'Physical Mail' },
     { uuid: '86567e25-ec64-45aa-a890-cb6bb74e37f9', label: 'Staff to Staff' },
     { uuid: 'c24206f9-4098-427c-8470-42ff4973d13c', label: 'Successful Guardian Phone SGP' },
@@ -96,17 +109,49 @@
     { uuid: '1a7ffb9f-dd15-432f-abea-5455e64ee104', label: 'Well Check' }
   ];
 
-  function getTagOptions() {
-    const select = document.getElementById('id_tags');
-    if (select) {
-      const live = Array.from(select.querySelectorAll('option')).map((opt) => ({
-        uuid: opt.value,
-        label: opt.textContent.trim()
-      }));
+  // Bump to '...-v2' to force everyone's saved copy to be ignored (e.g.
+  // after updating FALLBACK_TAGS and wanting it used right away).
+  const TAG_CACHE_KEY = 'ggn-tag-cache-v1';
 
-      if (live.length > 0) return live;
+  // Reads the real tag dropdown if it exists on this page and saves it
+  // for later. Returns the tags, or null if this isn't a Notes page.
+  function harvestTagsFromPage() {
+    const select = document.getElementById('id_tags');
+    if (!select) return null;
+    const tags = Array.from(select.querySelectorAll('option'))
+      .filter((o) => o.value) // skip blank placeholder options
+      .map((o) => ({ uuid: o.value, label: o.textContent.trim() }));
+    if (tags.length === 0) return null;
+    try {
+      localStorage.setItem(TAG_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), tags }));
+    } catch (e) {
+      /* storage blocked: the live list still works this time */
     }
-    return FALLBACK_TAGS;
+    return tags;
+  }
+
+  function getCachedTags() {
+    try {
+      const cached = JSON.parse(localStorage.getItem(TAG_CACHE_KEY));
+      if (cached && Array.isArray(cached.tags) && cached.tags.length) return cached;
+    } catch (e) {
+      /* ignore */
+    }
+    return null;
+  }
+
+  function getTagOptions() {
+    return harvestTagsFromPage() || getCachedTags()?.tags || FALLBACK_TAGS;
+  }
+
+  // If this is a Notes page, save its tag list as soon as the dropdown
+  // appears (it may render a moment after the page loads).
+  if (!harvestTagsFromPage()) {
+    const tagObserver = new MutationObserver(() => {
+      if (harvestTagsFromPage()) tagObserver.disconnect();
+    });
+    tagObserver.observe(document.body, { childList: true, subtree: true });
+    setTimeout(() => tagObserver.disconnect(), 15000); // stop watching after 15s
   }
 
   // ---------------------------------------------------------------------
@@ -118,7 +163,7 @@
     return el ? el.value : null;
   }
 
-  async function submitNote(student, noteText, tagUuid) {
+  async function submitNote(student, noteText, tagUuids) {
     const csrfCookie = getCookie('csrftoken');
     const ltiToken = getFormFieldValue('ltimiddlewaretoken');
     const payload = {
@@ -126,7 +171,7 @@
       alert: null,
       note: noteText,
       set_alert: null,
-      tag_uuids: tagUuid ? [tagUuid] : [],
+      tag_uuids: tagUuids,
       user: student.userId
     };
 
@@ -197,7 +242,8 @@
     </div>
 
     <div style="margin-top:10px;position:relative;">
-      <label style="font-size:13px;">Tag:</label><br/>
+      <label style="font-size:13px;">Tags (pick one or more):</label><br/>
+      <div id="ggn-tag-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></div>
       <input type="text" id="ggn-tag-search" placeholder="Type to search (e.g. SGP, Email)..." autocomplete="off" style="width:100%;padding:6px;margin-top:4px;box-sizing:border-box;" />
       <div id="ggn-tag-dropdown" style="display:none;position:absolute;left:0;right:0;background:#fff;border:1px solid #ccc;border-radius:4px;max-height:180px;overflow-y:auto;z-index:100000;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
     </div>
@@ -257,22 +303,56 @@
 
   const accumulatedStudents = new Map(); // lmsId -> {lmsId, userId, name}
   const selectedIds = new Set();
+  const selectedTags = new Map(); // uuid -> label, in the order they were picked
   let savedNote = '';
-  let savedTagUuid = '';
-  let savedTagLabel = '';
-  let currentTagUuid = '';
+  let savedTags = new Map();
 
   function updateSelectedCount() {
     const countEl = modal.querySelector('#ggn-selected-count');
     if (countEl) countEl.textContent = `${selectedIds.size} selected`;
   }
 
-  function renderTagDropdown(filterText) {
-    const dropdown = modal.querySelector('#ggn-tag-dropdown');
-    const tags = getTagOptions();
-    const filtered = filterText
+  // ---- Tag chips ----
+
+  function renderTagChips() {
+    const chipsEl = modal.querySelector('#ggn-tag-chips');
+    chipsEl.innerHTML = Array.from(selectedTags.entries())
+      .map(
+        ([uuid, label]) => `
+        <span style="display:inline-flex;align-items:center;background:#e3f2f1;color:#1d5f5b;border:1px solid #29847E;border-radius:12px;padding:2px 4px 2px 10px;font-size:12px;">
+          ${escapeHtml(label)}
+          <button type="button" class="ggn-chip-remove" data-uuid="${escapeHtml(uuid)}" title="Remove tag" aria-label="Remove ${escapeHtml(label)}"
+            style="border:none;background:none;color:#1d5f5b;cursor:pointer;font-size:14px;line-height:1;padding:0 4px;margin-left:2px;">×</button>
+        </span>`
+      )
+      .join('');
+
+    chipsEl.querySelectorAll('.ggn-chip-remove').forEach((x) => {
+      x.addEventListener('click', () => {
+        selectedTags.delete(x.getAttribute('data-uuid'));
+        renderTagChips();
+      });
+    });
+  }
+
+  function addTag(uuid, label) {
+    selectedTags.set(uuid, label);
+    renderTagChips();
+    const searchEl = modal.querySelector('#ggn-tag-search');
+    searchEl.value = '';
+    renderTagDropdown(''); // keep the list open so a second tag can be picked right away
+  }
+
+  function getFilteredTags(filterText) {
+    const tags = getTagOptions().filter((t) => !selectedTags.has(t.uuid)); // hide already-picked tags
+    return filterText
       ? tags.filter((t) => t.label.toLowerCase().includes(filterText.toLowerCase()))
       : tags;
+  }
+
+  function renderTagDropdown(filterText) {
+    const dropdown = modal.querySelector('#ggn-tag-dropdown');
+    const filtered = getFilteredTags(filterText);
 
     if (filtered.length === 0) {
       dropdown.innerHTML = '<div style="padding:6px 8px;color:#888;font-size:12px;">No matching tags</div>';
@@ -280,7 +360,7 @@
       dropdown.innerHTML = filtered
         .map(
           (t) =>
-            `<div class="ggn-tag-option" data-uuid="${t.uuid}" data-label="${t.label.replace(/"/g, '&quot;')}" style="padding:6px 8px;cursor:pointer;font-size:13px;">${t.label}</div>`
+            `<div class="ggn-tag-option" data-uuid="${escapeHtml(t.uuid)}" data-label="${escapeHtml(t.label)}" style="padding:6px 8px;cursor:pointer;font-size:13px;">${escapeHtml(t.label)}</div>`
         )
         .join('');
 
@@ -290,16 +370,15 @@
         opt.addEventListener('mousedown', (e) => {
           // mousedown (not click) so this fires before the search box's blur hides the dropdown
           e.preventDefault();
-          const searchEl = modal.querySelector('#ggn-tag-search');
-          searchEl.value = opt.getAttribute('data-label');
-          currentTagUuid = opt.getAttribute('data-uuid');
-          dropdown.style.display = 'none';
+          addTag(opt.getAttribute('data-uuid'), opt.getAttribute('data-label'));
         });
       });
     }
 
     dropdown.style.display = 'block';
   }
+
+  // ---- Roster ----
 
   function renderRosterList() {
     const listEl = modal.querySelector('#ggn-roster-list');
@@ -310,8 +389,8 @@
       .map(
         (s) => `
         <label style="display:block;margin-bottom:4px;break-inside:avoid;">
-          <input type="checkbox" class="ggn-student-cb" data-lms-id="${s.lmsId}" ${selectedIds.has(s.lmsId) ? 'checked' : ''} />
-          ${s.name}
+          <input type="checkbox" class="ggn-student-cb" data-lms-id="${escapeHtml(s.lmsId)}" ${selectedIds.has(s.lmsId) ? 'checked' : ''} />
+          ${escapeHtml(s.name)}
         </label>`
       )
       .join('');
@@ -377,13 +456,18 @@
 
     modal.style.display = 'block';
 
-    const noteEl = modal.querySelector('#ggn-note');
+    modal.querySelector('#ggn-note').value = savedNote;
+
+    selectedTags.clear();
+    savedTags.forEach((label, uuid) => selectedTags.set(uuid, label));
+    renderTagChips();
+
     const tagSearchOpenEl = modal.querySelector('#ggn-tag-search');
-
-    tagSearchOpenEl.value = savedTagLabel;
-    currentTagUuid = savedTagUuid;
-
-    noteEl.value = savedNote;
+    tagSearchOpenEl.value = '';
+    const cache = getCachedTags();
+    tagSearchOpenEl.placeholder = cache
+      ? `Search tags (list updated ${new Date(cache.savedAt).toLocaleDateString()})`
+      : 'Search tags (using built-in list)';
 
     addVisibleStudents();
     startWatchingTable();
@@ -391,12 +475,29 @@
 
   const tagSearchEl = modal.querySelector('#ggn-tag-search');
   tagSearchEl.addEventListener('input', () => {
-    currentTagUuid = ''; // typing invalidates whatever was previously selected
     renderTagDropdown(tagSearchEl.value);
   });
 
   tagSearchEl.addEventListener('focus', () => {
     renderTagDropdown(tagSearchEl.value);
+  });
+
+  tagSearchEl.addEventListener('keydown', (e) => {
+    const dropdown = modal.querySelector('#ggn-tag-dropdown');
+    if (e.key === 'Enter') {
+      // Enter picks the top match
+      e.preventDefault();
+      const first = getFilteredTags(tagSearchEl.value)[0];
+      if (first) addTag(first.uuid, first.label);
+    } else if (e.key === 'Backspace' && tagSearchEl.value === '' && selectedTags.size > 0) {
+      // Backspace in an empty box removes the most recently added tag
+      const lastUuid = Array.from(selectedTags.keys()).pop();
+      selectedTags.delete(lastUuid);
+      renderTagChips();
+      renderTagDropdown('');
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
   });
 
   tagSearchEl.addEventListener('blur', () => {
@@ -407,12 +508,11 @@
   });
 
   modal.querySelector('#ggn-cancel').addEventListener('click', () => {
-    // Save the in-progress note/tag so closing and reopening later (or just
-    // paging to the next page) doesn't lose what was already typed.
+    // Save the in-progress note/tags so closing and reopening later (or just
+    // paging to the next page) doesn't lose what was already entered.
 
     savedNote = modal.querySelector('#ggn-note').value;
-    savedTagUuid = currentTagUuid;
-    savedTagLabel = modal.querySelector('#ggn-tag-search').value;
+    savedTags = new Map(selectedTags);
     modal.style.display = 'none';
   });
 
@@ -436,7 +536,8 @@
     const submitBtn = modal.querySelector('#ggn-submit');
     const logEl = modal.querySelector('#ggn-log');
     const noteText = modal.querySelector('#ggn-note').value.trim();
-    const tagUuid = currentTagUuid;
+    const tagUuids = Array.from(selectedTags.keys());
+    const tagLabels = Array.from(selectedTags.values());
 
     if (!noteText) {
       logEl.textContent = 'Write a note first.';
@@ -448,17 +549,22 @@
       return;
     }
 
+    if (modal.querySelector('#ggn-tag-search').value.trim()) {
+      logEl.textContent = 'There is unfinished text in the tag box. Pick a tag from the list (or press Enter), or clear the box.';
+      return;
+    }
+
     const selectedStudents = Array.from(accumulatedStudents.values()).filter((s) => selectedIds.has(s.lmsId));
 
     submitBtn.disabled = true;
-    logEl.textContent = '';
+    logEl.textContent = `Tags: ${tagLabels.length ? tagLabels.join(', ') : '(none)'}\n\n`;
 
     let successCount = 0;
     let failCount = 0;
 
     for (const student of selectedStudents) {
       try {
-        await submitNote(student, noteText, tagUuid);
+        await submitNote(student, noteText, tagUuids);
         successCount++;
         logEl.textContent += `✅ ${student.name}\n`;
       } catch (err) {
