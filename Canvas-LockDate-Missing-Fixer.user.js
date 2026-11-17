@@ -1,17 +1,19 @@
 // ==UserScript==
 // @name         Canvas Lock-Date Extender + Missing Tagger
 // @namespace    odysseyCTE-hub
-// @version      1.3.0
+// @version      1.3.1
 // @description  Re-opens Q2 work for the whole course: any assignment due on/after the Q2 start whose "Available until" is earlier than the extend date is moved to that date. Adds the Missing tag to past-due Q2 zeros that still have an attempt left. Never changes grades. Missing tags can be tested on one student first. Refreshes the gradebook when done.
 // @updateURL    https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Canvas-LockDate-Missing-Fixer.user.js
 // @downloadURL  https://raw.githubusercontent.com/odysseyCTE-hub/Odyssey-Canvas-Tools/main/Canvas-LockDate-Missing-Fixer.user.js
-// @match        https://*.instructure.com/courses/*
+// @match        https://*.instructure.com/courses/*/gradebook*
+// @exclude      https://*.instructure.com/courses/*/gradebook/speed_grader*
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @run-at       document-idle
 // ==/UserScript==
 
 /* Changelog
+ * 1.3.1  Button now only appears on the gradebook page (not every Canvas page). SpeedGrader excluded.
  * 1.3.0  Replaced the From/Through window with a simpler rule: Q2 start + Extend until. Any assignment
  *        due on/after Q2 start whose available-until is earlier than the extend date is moved to it
  *        (already locked AND locking during break). Never shortens a date. Missing tags: past-due Q2
@@ -33,15 +35,14 @@
 
 (function () {
   'use strict';
-  const VERSION = '1.3.0';
+  const VERSION = '1.3.1';
 
-  const cm = location.pathname.match(/\/courses\/(\d+)/);
-  if (!cm) return;
+  const cm = location.pathname.match(/^\/courses\/(\d+)\/gradebook\/?$/);
+  if (!cm) return; // gradebook page only
   const COURSE_ID = cm[1];
   const API = `/api/v1/courses/${COURSE_ID}`;
   const UNDO_KEY = `ldx_date_undo_${COURSE_ID}`;
   const LASTLOG_KEY = `ldx_last_log_${COURSE_ID}`;
-  const GRADEBOOK = `/courses/${COURSE_ID}/gradebook`;
 
   // ---------------- API helpers ----------------
   function csrf() {
@@ -406,10 +407,7 @@
   function finishAndRefresh() {
     GM_setValue(LASTLOG_KEY, { at: Date.now(), lines: runLines || [] });
     runLines = null;
-    setTimeout(() => {
-      if (location.pathname.startsWith(GRADEBOOK)) location.reload();
-      else location.href = GRADEBOOK;
-    }, 1500);
+    setTimeout(() => location.reload(), 1500);
   }
 
   // ---------------- Apply ----------------
